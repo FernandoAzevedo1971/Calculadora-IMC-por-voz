@@ -14,6 +14,7 @@ interface SpeechRecognitionLike {
 }
 
 interface SpeechRecognitionEventLike {
+  resultIndex: number;
   results: ArrayLike<{
     isFinal: boolean;
     0: { transcript: string; confidence?: number };
@@ -81,7 +82,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     r.onresult = (e) => {
       let finalChunk = '';
       let interimChunk = '';
-      for (let i = 0; i < e.results.length; i++) {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
         if (res.isFinal) finalChunk += res[0].transcript;
         else interimChunk += res[0].transcript;

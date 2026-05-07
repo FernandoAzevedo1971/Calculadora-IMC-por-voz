@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, RotateCcw, Volume2 } from 'lucide-react';
 import { VoiceButton } from '@/components/VoiceButton';
-import { BmiGauge } from '@/components/BmiGauge';
+import { BmiBar } from '@/components/BmiBar';
 import { ManualInputs } from '@/components/ManualInputs';
 import { ExtraMetrics } from '@/components/ExtraMetrics';
 import { Disclaimer } from '@/components/Disclaimer';
@@ -168,7 +168,7 @@ export default function Home() {
       </section>
 
       <section className="card">
-        <BmiGauge bmi={bmi} />
+        <BmiBar bmi={bmi} />
         {bmi != null && (
           <p className="sr-only">
             IMC calculado: {formatBmi(bmi)}, classificação {classifyBmi(bmi).label}.
