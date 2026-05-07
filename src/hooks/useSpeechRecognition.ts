@@ -57,7 +57,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     if (!Ctor) return null;
     const r = new Ctor();
     r.lang = lang;
-    r.continuous = false;
+    r.continuous = true;
     r.interimResults = true;
     r.onstart = () => {
       setListening(true);
@@ -104,6 +104,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     if (!r) return;
     recognitionRef.current = r;
     setError(null);
+    setTranscript(''); // começa sessão limpa a cada toque no botão
     setInterim('');
     try {
       r.start();

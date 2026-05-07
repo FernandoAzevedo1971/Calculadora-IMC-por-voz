@@ -108,8 +108,14 @@ export default function Home() {
       <section className="card text-center space-y-4">
         <h1 className="text-xl font-bold">Diga seu peso e sua altura</h1>
         <p className="text-sm text-muted">
-          Toque no microfone e fale, por exemplo:{' '}
-          <em>"setenta e cinco quilos, um metro e setenta e oito"</em>.
+          Toque para começar, fale em qualquer ordem — peso e depois altura,
+          ou altura e depois peso — e toque novamente para parar.
+        </p>
+        <p className="text-xs text-muted">
+          Exemplos:{' '}
+          <em>"setenta e cinco quilos, um metro e setenta e oito"</em>
+          {' '}ou{' '}
+          <em>"altura 1,78, peso 75"</em>
         </p>
         <div className="flex justify-center py-2">
           <VoiceButton
