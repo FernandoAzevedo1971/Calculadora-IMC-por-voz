@@ -52,8 +52,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     setSupported(Boolean(Ctor));
   }, []);
 
-  const ensureInstance = useCallback(() => {
-    if (recognitionRef.current) return recognitionRef.current;
+  const createInstance = useCallback((): SpeechRecognitionLike | null => {
     const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Ctor) return null;
     const r = new Ctor();
@@ -64,10 +63,20 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
       setListening(true);
       setError(null);
     };
-    r.onend = () => setListening(false);
-    r.onerror = (e) => {
-      setError(e.error || 'Erro no reconhecimento');
+    r.onend = () => {
       setListening(false);
+      setInterim(''); // clear partial text once recognition ends
+    };
+    r.onerror = (e) => {
+      const msg =
+        e.error === 'no-speech'
+          ? 'Nenhuma fala detectada. Tente novamente.'
+          : e.error === 'not-allowed'
+          ? 'Permissão de microfone negada.'
+          : e.error || 'Erro no reconhecimento';
+      setError(msg);
+      setListening(false);
+      setInterim('');
     };
     r.onresult = (e) => {
       let finalChunk = '';
@@ -77,27 +86,31 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
         if (res.isFinal) finalChunk += res[0].transcript;
         else interimChunk += res[0].transcript;
       }
-      if (finalChunk) setTranscript((prev) => (prev ? prev + ' ' : '') + finalChunk.trim());
+      if (finalChunk) setTranscript((prev) => (prev ? `${prev} ${finalChunk.trim()}` : finalChunk.trim()));
       setInterim(interimChunk);
     };
-    recognitionRef.current = r;
     return r;
   }, [lang]);
 
   const start = useCallback(() => {
-    const r = ensureInstance();
-    if (!r) {
+    const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!Ctor) {
       setError('Reconhecimento de voz não suportado neste navegador.');
       return;
     }
+    // Always create a fresh instance so it's in a clean state
+    recognitionRef.current?.abort();
+    const r = createInstance();
+    if (!r) return;
+    recognitionRef.current = r;
     setError(null);
     setInterim('');
     try {
       r.start();
     } catch {
-      // started already; ignore
+      // already started; ignore
     }
-  }, [ensureInstance]);
+  }, [createInstance]);
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();

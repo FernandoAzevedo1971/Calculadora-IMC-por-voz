@@ -12,34 +12,40 @@ const GAUGE_MAX = 45;
 export function BmiGauge({ bmi }: Props) {
   const cls = bmi != null ? classifyBmi(bmi) : null;
   const ratio = bmi != null ? clamp((bmi - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0, 1) : 0;
+  // -90° = leftmost (underweight), +90° = rightmost (obesity3)
   const angle = -90 + ratio * 180;
 
   return (
     <div className="flex flex-col items-center" aria-live="polite">
       <svg viewBox="0 0 200 110" className="w-full max-w-sm" role="img" aria-label="Indicador de IMC">
         {BMI_CLASSES.map((c, i) => {
-          const start = (clamp((c.min - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0, 1)) * 180 - 90;
+          const start = clamp((c.min - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0, 1) * 180 - 90;
           const endValue = c.max === Infinity ? GAUGE_MAX : c.max;
-          const end = (clamp((endValue - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0, 1)) * 180 - 90;
+          const end = clamp((endValue - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0, 1) * 180 - 90;
           return <Arc key={i} startAngle={start} endAngle={end} color={c.color} />;
         })}
+
+        {/* Needle: rendered as a line from pivot (100,100) toward top (100,22).
+            transformTemplate uses SVG rotate(angle, cx, cy) so the pivot is exact. */}
         <motion.line
           x1="100"
           y1="100"
           x2="100"
-          y2="20"
+          y2="22"
           stroke="rgb(var(--text))"
           strokeWidth="3"
           strokeLinecap="round"
-          style={{ originX: '100px', originY: '100px' }}
-          initial={false}
           animate={{ rotate: angle }}
+          transformTemplate={({ rotate }) => `rotate(${rotate ?? 0}, 100, 100)`}
           transition={{ type: 'spring', stiffness: 80, damping: 14 }}
         />
         <circle cx="100" cy="100" r="6" fill="rgb(var(--text))" />
       </svg>
+
       <div className="mt-3 text-center">
-        <div className="text-5xl font-extrabold tabular-nums">{bmi != null ? formatBmi(bmi) : '—'}</div>
+        <div className="text-5xl font-extrabold tabular-nums">
+          {bmi != null ? formatBmi(bmi) : '—'}
+        </div>
         <div className="text-sm text-muted">IMC (kg/m²)</div>
         {cls && (
           <div
