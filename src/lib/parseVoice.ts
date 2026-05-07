@@ -34,9 +34,15 @@ const WEIGHT_KEYWORDS = new Set([
   'peso', 'quilos', 'quilo', 'kg', 'kilos', 'kilo'
 ]);
 
-const HEIGHT_KEYWORDS = new Set([
-  'altura', 'metros', 'metro', 'm', 'cm', 'centimetros', 'centimetro', 'estatura'
-]);
+// "altura"/"estatura" precede the number — flush first, then switch target
+const HEIGHT_LABEL_KEYWORDS = new Set(['altura', 'estatura']);
+
+// "metro"/"metros"/"m" follow the integer part of a meter value:
+// "um metro e 62" → pendingMeterValue=1 then +0.62 → 1.62m
+const HEIGHT_METER_UNIT_KEYWORDS = new Set(['metro', 'metros', 'm']);
+
+// "cm"/"centimetros" follow a centimeter value; normalizeHeight converts /100
+const HEIGHT_CM_UNIT_KEYWORDS = new Set(['cm', 'centimetro', 'centimetros']);
 
 const NUMBER_WORDS = new Set([
   'zero','um','uma','dois','duas','tres','quatro','cinco','seis','meia','sete','oito','nove',
@@ -91,10 +97,10 @@ type Target = 'weight' | 'height' | null;
 
 /**
  * Parse a transcript that may contain weight, height and/or a command.
- * Walks tokens left-to-right. Keywords like "peso"/"altura"/"kg"/"metros"
- * switch the current target slot. Number tokens (digit literals or word
- * numbers) are accumulated into a phrase and flushed on every keyword,
- * digit literal, or unrecognized word.
+ *
+ * Handles "N metro(s) e M" patterns: "um metro e 62" → 1.62m.
+ * When a METER_UNIT keyword is encountered after an integer height of 1 or 2,
+ * that value is held as pendingMeterValue so the following number adds cm/100.
  */
 export function parseVoice(transcript: string): ParsedVoice {
   const raw = transcript ?? '';
@@ -106,23 +112,63 @@ export function parseVoice(transcript: string): ParsedVoice {
 
   let target: Target = null;
   let phrase: string[] = [];
+  // Holds the integer meter part while waiting for the cm fraction ("um metro e 62")
+  let pendingMeterValue: number | null = null;
+  // True when the last height assignment was a whole integer 1 or 2 (candidate for pending)
+  let lastAssignedWasWholeMeters = false;
+
+  const finalizePendingMeter = () => {
+    if (pendingMeterValue !== null) {
+      if (result.heightM == null) result.heightM = round2(pendingMeterValue);
+      pendingMeterValue = null;
+      lastAssignedWasWholeMeters = false;
+    }
+  };
 
   const tryAssign = (value: number): boolean => {
+    // If accumulating "N metro(s) e [cm]", consume the cm part first
+    if (pendingMeterValue !== null) {
+      if (value === 0.5) {
+        // "um metro e meio" → 1.5m
+        result.heightM = round2(pendingMeterValue + 0.5);
+        pendingMeterValue = null;
+        lastAssignedWasWholeMeters = false;
+        return true;
+      }
+      if (value >= 0 && value <= 99 && Number.isInteger(value)) {
+        result.heightM = round2(pendingMeterValue + value / 100);
+        pendingMeterValue = null;
+        lastAssignedWasWholeMeters = false;
+        return true;
+      }
+      // Value outside cm range — finalize pending and fall through
+      finalizePendingMeter();
+    }
+
     if (target === 'weight' && result.weightKg == null) {
       const w = normalizeWeight(value);
-      if (w != null) { result.weightKg = w; return true; }
+      if (w != null) { result.weightKg = w; lastAssignedWasWholeMeters = false; return true; }
     }
     if (target === 'height' && result.heightM == null) {
       const h = normalizeHeight(value);
-      if (h != null) { result.heightM = h; return true; }
+      if (h != null) {
+        lastAssignedWasWholeMeters = Number.isInteger(value) && value >= 1 && value <= 2;
+        result.heightM = h;
+        return true;
+      }
     }
+    // Heuristic: no explicit target — try weight first, then height
     if (result.weightKg == null) {
       const w = normalizeWeight(value);
-      if (w != null) { result.weightKg = w; return true; }
+      if (w != null) { result.weightKg = w; lastAssignedWasWholeMeters = false; return true; }
     }
     if (result.heightM == null) {
       const h = normalizeHeight(value);
-      if (h != null) { result.heightM = h; return true; }
+      if (h != null) {
+        lastAssignedWasWholeMeters = Number.isInteger(value) && value >= 1 && value <= 2;
+        result.heightM = h;
+        return true;
+      }
     }
     return false;
   };
@@ -136,8 +182,42 @@ export function parseVoice(transcript: string): ParsedVoice {
   };
 
   for (const tok of tokens) {
-    if (WEIGHT_KEYWORDS.has(tok)) { flush(); target = 'weight'; continue; }
-    if (HEIGHT_KEYWORDS.has(tok)) { flush(); target = 'height'; continue; }
+    if (WEIGHT_KEYWORDS.has(tok)) {
+      flush();
+      finalizePendingMeter();
+      target = 'weight';
+      lastAssignedWasWholeMeters = false;
+      continue;
+    }
+
+    if (HEIGHT_LABEL_KEYWORDS.has(tok)) {
+      flush();
+      finalizePendingMeter();
+      target = 'height';
+      lastAssignedWasWholeMeters = false;
+      continue;
+    }
+
+    if (HEIGHT_METER_UNIT_KEYWORDS.has(tok)) {
+      // Set target BEFORE flush so the preceding number is assigned as height
+      target = 'height';
+      flush();
+      // If we just assigned a whole-meter integer (1 or 2), convert to pending
+      // so the next number provides the centimeter fraction
+      if (lastAssignedWasWholeMeters && result.heightM != null && result.heightM <= 2) {
+        pendingMeterValue = result.heightM;
+        result.heightM = undefined;
+        lastAssignedWasWholeMeters = false;
+      }
+      continue;
+    }
+
+    if (HEIGHT_CM_UNIT_KEYWORDS.has(tok)) {
+      finalizePendingMeter();
+      target = 'height';
+      flush();
+      continue;
+    }
 
     const isDigit = /^\d+(?:[.,]\d+)?$/.test(tok);
     if (isDigit) {
@@ -152,7 +232,9 @@ export function parseVoice(transcript: string): ParsedVoice {
     }
     flush();
   }
+
   flush();
+  finalizePendingMeter();
 
   return result;
 }

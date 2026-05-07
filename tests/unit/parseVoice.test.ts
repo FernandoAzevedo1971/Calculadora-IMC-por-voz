@@ -57,3 +57,37 @@ describe('parseVoice', () => {
     expect(r.heightM).toBeUndefined();
   });
 });
+
+describe('parseVoice — "N metro(s) e M" height pattern', () => {
+  it('"um metro e 62" → 1.62m', () => {
+    expect(parseVoice('um metro e 62').heightM).toBe(1.62);
+  });
+
+  it('"um metro e oitenta" → 1.80m', () => {
+    expect(parseVoice('um metro e oitenta').heightM).toBe(1.80);
+  });
+
+  it('"um metro e setenta e oito" → 1.78m', () => {
+    expect(parseVoice('um metro e setenta e oito').heightM).toBe(1.78);
+  });
+
+  it('"dois metros" alone finalizes to 2.0m', () => {
+    expect(parseVoice('dois metros').heightM).toBe(2.0);
+  });
+
+  it('"1 metro e 78" (digit form) → 1.78m', () => {
+    expect(parseVoice('1 metro e 78').heightM).toBe(1.78);
+  });
+
+  it('height-first utterance with meter pattern', () => {
+    const r = parseVoice('altura um metro e 62 peso setenta e cinco quilos');
+    expect(r.weightKg).toBe(75);
+    expect(r.heightM).toBe(1.62);
+  });
+
+  it('weight-first utterance with meter pattern', () => {
+    const r = parseVoice('peso setenta e cinco quilos um metro e setenta e oito');
+    expect(r.weightKg).toBe(75);
+    expect(r.heightM).toBe(1.78);
+  });
+});

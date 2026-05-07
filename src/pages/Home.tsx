@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, RotateCcw, Volume2 } from 'lucide-react';
 import { VoiceButton } from '@/components/VoiceButton';
 import { BmiGauge } from '@/components/BmiGauge';
@@ -19,7 +19,6 @@ export default function Home() {
   const sr = useSpeechRecognition('pt-BR');
   // Destructure stable references — avoid recreating the effect on every render
   const { speak, cancel } = useSpeechSynthesis('pt-BR');
-  const speakResults = useSettingsStore((s) => s.speakResults);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const profiles = useProfilesStore((s) => s.profiles);
   const activeId = useProfilesStore((s) => s.activeId);
@@ -32,10 +31,6 @@ export default function Home() {
   const [height, setHeight] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-
-  // Track whether voice was used in the current calculation so we only speak
-  // on voice-triggered results, not on manual typing.
-  const prevListeningRef = useRef(false);
 
   const weightNum = parseDecimal(weight);
   const heightNum = parseDecimal(height);
@@ -67,15 +62,6 @@ export default function Home() {
     if (parsed.command === 'history') navigate('/historico');
     if (parsed.command === 'switchProfile') navigate('/perfis');
   }, [sr.transcript, sr.interim, handleReset, setTheme, navigate]);
-
-  // Speak result only when voice recognition transitions from listening → stopped
-  useEffect(() => {
-    if (prevListeningRef.current && !sr.listening && bmi != null && speakResults) {
-      const cls = classifyBmi(bmi);
-      speak(`Seu IMC é ${speakBmi(bmi)}. Classificação: ${cls.label}.`);
-    }
-    prevListeningRef.current = sr.listening;
-  }, [sr.listening, bmi, speakResults, speak]);
 
   const handleSave = () => {
     if (bmi == null || !profile) return;
