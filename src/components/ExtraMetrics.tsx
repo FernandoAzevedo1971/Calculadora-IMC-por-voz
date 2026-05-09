@@ -1,39 +1,34 @@
 import { healthyWeightRange, idealWeightDevine } from '@/lib/bmi';
-import { ACTIVITY_LABELS, calcCalories, calcTmb } from '@/lib/tmb';
-import { formatKcal, formatKg } from '@/lib/format';
+import { formatKg } from '@/lib/format';
 import type { Profile } from '@/store/useProfilesStore';
-import { ageFromBirthDate } from '@/lib/tmb';
 
 interface Props {
   profile: Profile;
-  weightKg: number;
   heightM: number;
 }
 
-export function ExtraMetrics({ profile, weightKg, heightM }: Props) {
+export function ExtraMetrics({ profile, heightM }: Props) {
   const [minW, maxW] = healthyWeightRange(heightM);
   const ideal = idealWeightDevine(heightM, profile.sex);
-  const age = profile.birthDate ? ageFromBirthDate(profile.birthDate) : NaN;
-  const tmb = Number.isFinite(age) ? calcTmb({ weightKg, heightM, ageYears: age, sex: profile.sex }) : NaN;
-  const kcal = Number.isFinite(tmb) ? calcCalories(tmb, profile.activityLevel) : NaN;
+
+  const idealHint =
+    profile.sex === 'F'
+      ? 'Estimativa baseada na sua altura — fórmula feminina de Devine'
+      : profile.sex === 'M'
+      ? 'Estimativa baseada na sua altura — fórmula masculina de Devine'
+      : 'Estimativa baseada na sua altura — fórmula de Devine';
 
   return (
     <div className="grid sm:grid-cols-2 gap-3">
-      <Metric title="Faixa saudável" value={`${formatKg(minW)} – ${formatKg(maxW)}`} hint="Para sua altura" />
+      <Metric
+        title="Faixa saudável do IMC"
+        value={`${formatKg(minW)} – ${formatKg(maxW)}`}
+        hint="Intervalo de pesos que resulta em IMC entre 18,5 e 24,9 para a sua altura — considerado saudável pela OMS"
+      />
       <Metric
         title="Peso ideal (Devine)"
         value={formatKg(ideal)}
-        hint={profile.sex === 'F' ? 'Fórmula feminina' : profile.sex === 'M' ? 'Fórmula masculina' : 'Estimativa neutra'}
-      />
-      <Metric
-        title="Taxa metabólica basal"
-        value={Number.isFinite(tmb) ? formatKcal(tmb) : '—'}
-        hint={Number.isFinite(tmb) ? 'Mifflin-St Jeor' : 'Defina a data de nascimento no perfil'}
-      />
-      <Metric
-        title="Necessidade calórica"
-        value={Number.isFinite(kcal) ? formatKcal(kcal) : '—'}
-        hint={Number.isFinite(kcal) ? ACTIVITY_LABELS[profile.activityLevel] : 'Configure idade e atividade'}
+        hint={idealHint}
       />
     </div>
   );

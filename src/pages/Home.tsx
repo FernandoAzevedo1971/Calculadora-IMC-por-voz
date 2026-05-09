@@ -177,7 +177,7 @@ export default function Home() {
       </section>
 
       {profile && bmi != null && (
-        <ExtraMetrics profile={profile} weightKg={weightNum} heightM={heightNum} />
+        <ExtraMetrics profile={profile} heightM={heightNum} />
       )}
 
       <Disclaimer />
