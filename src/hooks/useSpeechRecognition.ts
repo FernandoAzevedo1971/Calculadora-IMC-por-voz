@@ -41,6 +41,9 @@ export interface UseSpeechRecognitionResult {
 
 export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  // Store each finalized result at its own index to prevent duplicates when the
+  // browser re-fires onresult with already-processed finals (continuous mode bug).
+  const finalResultsRef = useRef<string[]>([]);
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -80,14 +83,16 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
       setInterim('');
     };
     r.onresult = (e) => {
-      let finalChunk = '';
       let interimChunk = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const res = e.results[i];
-        if (res.isFinal) finalChunk += res[0].transcript;
-        else interimChunk += res[0].transcript;
+        if (res.isFinal) {
+          finalResultsRef.current[i] = res[0].transcript.trim();
+        } else {
+          interimChunk += res[0].transcript;
+        }
       }
-      if (finalChunk) setTranscript((prev) => (prev ? `${prev} ${finalChunk.trim()}` : finalChunk.trim()));
+      setTranscript(finalResultsRef.current.filter(Boolean).join(' ').trim());
       setInterim(interimChunk);
     };
     return r;
@@ -101,6 +106,7 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     }
     // Always create a fresh instance so it's in a clean state
     recognitionRef.current?.abort();
+    finalResultsRef.current = [];
     const r = createInstance();
     if (!r) return;
     recognitionRef.current = r;
