@@ -95,8 +95,8 @@ export default function Home() {
       <section className="card text-center space-y-4">
         <h1 className="text-xl font-bold">Diga seu peso e sua altura</h1>
         <p className="text-sm text-muted">
-          Toque para começar, fale em qualquer ordem — peso e depois altura,
-          ou altura e depois peso — e toque novamente para parar.
+          Toque para começar e fale em qualquer ordem — peso e altura na mesma frase.
+          O reconhecimento para automaticamente ao detectar o fim da fala.
         </p>
         <p className="text-xs text-muted">
           Exemplos:{' '}

@@ -61,7 +61,10 @@ export function useSpeechRecognition(lang = 'pt-BR'): UseSpeechRecognitionResult
     if (!Ctor) return null;
     const r = new Ctor();
     r.lang = lang;
-    r.continuous = true;
+    // continuous=false: captures one utterance and stops automatically.
+    // With continuous=true, Android Chrome resends every recognized fragment
+    // repeatedly, flooding the transcript with duplicate results.
+    r.continuous = false;
     r.interimResults = true;
     r.onstart = () => {
       setListening(true);

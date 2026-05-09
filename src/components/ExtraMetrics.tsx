@@ -13,10 +13,10 @@ export function ExtraMetrics({ profile, heightM }: Props) {
 
   const idealHint =
     profile.sex === 'F'
-      ? 'Estimativa baseada na sua altura — fórmula feminina de Devine'
+      ? 'Fórmula de Devine (1974): 45,5 kg + 2,3 kg para cada 2,54 cm acima de 152 cm de altura. Referência clínica; não substitui avaliação médica.'
       : profile.sex === 'M'
-      ? 'Estimativa baseada na sua altura — fórmula masculina de Devine'
-      : 'Estimativa baseada na sua altura — fórmula de Devine';
+      ? 'Fórmula de Devine (1974): 50 kg + 2,3 kg para cada 2,54 cm acima de 152 cm de altura. Referência clínica; não substitui avaliação médica.'
+      : 'Fórmula de Devine (1974): estima o peso considerado ideal a partir da altura. Referência clínica; não substitui avaliação médica.';
 
   return (
     <div className="grid sm:grid-cols-2 gap-3">
