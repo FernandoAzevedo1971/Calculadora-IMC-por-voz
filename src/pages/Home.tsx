@@ -49,11 +49,12 @@ export default function Home() {
     cancel();
   }, [sr, cancel]);
 
-  // Parse transcript (final + interim) and fill the fields
+  // Parse only finalized transcript to fill the fields — using interim caused the
+  // fields to flicker with wrong values as partial recognition arrived word by word.
+  // The interim text is still shown in the transcript box for visual feedback.
   useEffect(() => {
-    const transcript = `${sr.transcript} ${sr.interim}`.trim();
-    if (!transcript) return;
-    const parsed = parseVoice(transcript);
+    if (!sr.transcript) return;
+    const parsed = parseVoice(sr.transcript);
     if (parsed.weightKg != null) setWeight(formatLocaleNumber(parsed.weightKg));
     if (parsed.heightM != null) setHeight(formatLocaleNumber(parsed.heightM));
     if (parsed.command === 'clear') handleReset();
@@ -61,7 +62,7 @@ export default function Home() {
     if (parsed.command === 'lightMode') setTheme('light');
     if (parsed.command === 'history') navigate('/historico');
     if (parsed.command === 'switchProfile') navigate('/perfis');
-  }, [sr.transcript, sr.interim, handleReset, setTheme, navigate]);
+  }, [sr.transcript, handleReset, setTheme, navigate]);
 
   const handleSave = () => {
     if (bmi == null || !profile) return;
