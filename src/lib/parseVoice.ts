@@ -56,6 +56,19 @@ const NUMBER_WORDS = new Set([
 
 const CONNECTORS = new Set(['e', 'virgula', 'ponto']);
 
+// Words that can only START an independent number phrase (tens, teens, hundreds, thousands).
+// When one of these appears while a pending meter value is waiting for its cm fraction,
+// the current phrase is flushed first — preventing "setenta e oito setenta e cinco"
+// from being parsed as a single run-on number.
+const PHRASE_STARTERS = new Set([
+  'dez','onze','doze','treze','catorze','quatorze','quinze',
+  'dezesseis','dezessete','dezoito','dezenove',
+  'vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa',
+  'cem','cento','duzentos','duzentas','trezentos','trezentas','quatrocentos','quatrocentas',
+  'quinhentos','quinhentas','seiscentos','seiscentas','setecentos','setecentas',
+  'oitocentos','oitocentas','novecentos','novecentas','mil'
+]);
+
 /**
  * Try to convert a Portuguese expression to a number. Accepts digits,
  * comma decimals, and number words. Returns null when nothing usable.
@@ -199,6 +212,22 @@ export function parseVoice(transcript: string): ParsedVoice {
     }
 
     if (HEIGHT_METER_UNIT_KEYWORDS.has(tok)) {
+      // If phrase ends with "um"/"dois" and that word is NOT immediately preceded
+      // by a connector (meaning it's isolated, not part of e.g. "vinte e dois"),
+      // the preceding words are the weight and the last word starts the height meter.
+      // e.g. "setenta e cinco um metro" → flush "setenta e cinco" as weight, then "um" as height.
+      if (phrase.length > 1) {
+        const last = phrase[phrase.length - 1];
+        const beforeLast = phrase[phrase.length - 2];
+        const lastIsMeter = last === 'um' || last === 'uma' || last === 'dois' || last === 'duas';
+        const lastIsAttached = CONNECTORS.has(beforeLast);
+        if (lastIsMeter && !lastIsAttached) {
+          phrase = phrase.slice(0, -1);
+          flush();
+          finalizePendingMeter();
+          phrase = [last];
+        }
+      }
       // Set target BEFORE flush so the preceding number is assigned as height
       target = 'height';
       flush();
@@ -227,6 +256,12 @@ export function parseVoice(transcript: string): ParsedVoice {
       continue;
     }
     if (NUMBER_WORDS.has(tok) || CONNECTORS.has(tok)) {
+      // While waiting for the cm-fraction of "N metro e X", a PHRASE_STARTER word
+      // signals that a new independent number is beginning — flush the current
+      // phrase first to avoid bleeding across number boundaries.
+      if (pendingMeterValue !== null && phrase.length > 0 && PHRASE_STARTERS.has(tok)) {
+        flush();
+      }
       phrase.push(tok);
       continue;
     }

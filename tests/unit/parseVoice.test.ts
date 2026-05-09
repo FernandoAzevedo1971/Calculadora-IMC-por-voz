@@ -90,4 +90,29 @@ describe('parseVoice — "N metro(s) e M" height pattern', () => {
     expect(r.weightKg).toBe(75);
     expect(r.heightM).toBe(1.78);
   });
+
+  it('height-first no label keyword: "um metro e setenta e oito setenta e cinco quilos"', () => {
+    const r = parseVoice('um metro e setenta e oito setenta e cinco quilos');
+    expect(r.heightM).toBe(1.78);
+    expect(r.weightKg).toBe(75);
+  });
+
+  it('weight words + "um metro" without keyword between: "setenta e cinco um metro e setenta e oito"', () => {
+    const r = parseVoice('setenta e cinco um metro e setenta e oito');
+    expect(r.weightKg).toBe(75);
+    expect(r.heightM).toBe(1.78);
+  });
+
+  it('accumulated transcript: finals joined with space', () => {
+    // Simulates two separate final results joined in sr.transcript
+    const r = parseVoice('um metro e setenta e oito setenta e cinco quilos');
+    expect(r.heightM).toBe(1.78);
+    expect(r.weightKg).toBe(75);
+  });
+
+  it('"um metro e oitenta e cinco setenta quilos" — height 1.85, weight 70', () => {
+    const r = parseVoice('um metro e oitenta e cinco setenta quilos');
+    expect(r.heightM).toBe(1.85);
+    expect(r.weightKg).toBe(70);
+  });
 });
