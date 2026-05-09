@@ -31,19 +31,32 @@ export function ExtraMetrics({ profile, heightM }: Props) {
             Fórmula de Devine (1974)
           </p>
           {isMale && (
-            <p className="text-sm font-mono">
-              PI = 50 + 2,3 &times; (H &minus; 152) / 2,54
-            </p>
+            <>
+              <p className="text-sm font-mono">
+                PI = 50 + 2,3 &times; (H &minus; 152) / 2,54
+              </p>
+              <p className="text-xs text-muted">
+                Parte-se de 50 kg e acrescenta-se 2,3 kg para cada 2,54 cm de altura acima de 152 cm.
+              </p>
+            </>
           )}
           {isFemale && (
-            <p className="text-sm font-mono">
-              PI = 45,5 + 2,3 &times; (H &minus; 152) / 2,54
-            </p>
+            <>
+              <p className="text-sm font-mono">
+                PI = 45,5 + 2,3 &times; (H &minus; 152) / 2,54
+              </p>
+              <p className="text-xs text-muted">
+                Parte-se de 45,5 kg e acrescenta-se 2,3 kg para cada 2,54 cm de altura acima de 152 cm.
+              </p>
+            </>
           )}
           {!isMale && !isFemale && (
             <>
               <p className="text-sm font-mono">Masc.: PI = 50 + 2,3 &times; (H &minus; 152) / 2,54</p>
               <p className="text-sm font-mono">Fem.: PI = 45,5 + 2,3 &times; (H &minus; 152) / 2,54</p>
+              <p className="text-xs text-muted">
+                Parte-se de 50 kg (masc.) ou 45,5 kg (fem.) e acrescenta-se 2,3 kg para cada 2,54 cm acima de 152 cm de altura.
+              </p>
             </>
           )}
           <p className="text-xs text-muted">
