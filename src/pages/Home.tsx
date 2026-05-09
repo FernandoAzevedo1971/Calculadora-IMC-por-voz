@@ -123,7 +123,7 @@ export default function Home() {
           aria-label="Transcrição"
         >
           <span className="text-muted">Transcrição: </span>
-          <span>{sr.interim || sr.transcript || '—'}</span>
+          <span>{sr.listening ? 'Ouvindo...' : (sr.transcript || '—')}</span>
         </div>
         {sr.error && (
           <p className="text-sm text-red-500" role="alert">
